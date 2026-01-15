@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gradient-to-br from-indigo-950 via-purple-950 to-blue-950 text-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MUN Research Courtroom – The Honorable Judge Speaks</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6">
+
+  <div class="w-full max-w-3xl bg-gradient-to-b from-slate-900/80 to-slate-950/90 backdrop-blur-lg text-white rounded-2xl shadow-2xl p-6 sm:p-10 border border-yellow-500/20 relative overflow-hidden">
+
+    <!-- Judge illustration -->
+    <div class="absolute -top-20 sm:-top-24 left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
+      <img 
+        src="https://thumbs.dreamstime.com/b/cheerful-cartoon-illustration-depicts-jovial-overweight-judge-black-robe-holds-wooden-gavel-suggesting-authority-370721057.jpg" 
+        alt="Judge Character" 
+        class="w-28 sm:w-36 h-auto rounded-full border-6 border-yellow-600 shadow-xl object-cover"
+      />
+      <div class="mt-2 px-5 py-1.5 bg-yellow-600 text-white font-semibold text-base sm:text-lg rounded-md shadow-md">
+        The Honorable Judge
+      </div>
+    </div>
+
+    <div class="mt-28 sm:mt-32 mb-10 text-center">
+      <h1 class="text-3xl sm:text-4xl font-bold text-yellow-300 drop-shadow-md">
+        MUN Research Courtroom
+      </h1>
+      <p class="text-base sm:text-lg text-slate-300 mt-2">Hear each statement… decide True or False… judgment revealed at the end.</p>
+    </div>
+
+    <!-- Speech cloud with statement -->
+    <div class="relative mx-auto max-w-2xl mb-10 sm:mb-12">
+      <img 
+        src="https://static.vecteezy.com/system/resources/previews/014/315/197/non_2x/cloud-speech-bubble-in-comic-style-speech-bubble-for-comments-and-shouts-isolated-in-grey-background-illustration-vector.jpg" 
+        alt="Speech Cloud" 
+        class="absolute inset-0 w-full h-full object-cover opacity-90 rounded-3xl"
+      />
+      <div class="relative p-6 sm:p-10 text-center z-10">
+        <div id="statement-text" class="text-lg sm:text-xl md:text-2xl leading-relaxed font-medium text-slate-900 drop-shadow-sm"></div>
+      </div>
+    </div>
+
+    <div id="options-container" class="flex flex-col sm:flex-row justify-center gap-6 sm:gap-12 mb-10"></div>
+
+    <div id="progress" class="text-center text-base sm:text-lg text-yellow-200/90">
+      Case <span id="current-case">1</span> of <span id="total-cases"></span>
+    </div>
+
+  </div>
+
+  <!-- Final Judgment -->
+  <div id="final-screen" class="hidden w-full max-w-3xl bg-gradient-to-b from-slate-900/90 to-black/90 backdrop-blur-xl text-white rounded-2xl shadow-2xl p-8 sm:p-12 mt-8 border border-yellow-500/30">
+    <h1 class="text-3xl sm:text-4xl font-bold text-center text-yellow-300 mb-10 drop-shadow-lg">
+      Final Judgment Delivered
+    </h1>
+
+    <p id="score-text" class="text-2xl sm:text-3xl text-center mb-10 font-semibold"></p>
+
+    <div id="verdict-list" class="space-y-6 text-base sm:text-lg"></div>
+
+    <button id="restart-btn" class="mt-10 mx-auto block bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-bold py-4 px-10 sm:px-12 rounded-full text-lg sm:text-xl transition shadow-xl transform hover:scale-105">
+      Reset Court – New Session
+    </button>
+  </div>
+
+  <script>
+    const cases = [
+      { statement: "Delegates should research only their country’s current government, not its history or culture.", answer: false, explanation: "A full country profile includes political system, history, economy, culture, and international relations." },
+      { statement: "Understanding other countries’ positions helps anticipate alliances or conflicts during MUN sessions.", answer: true, explanation: "Researching others’ stances builds negotiation and strategy skills." },
+      { statement: "Background guides and UN documents are not necessary if you already know your country’s stance.", answer: false, explanation: "They provide context and updates on the issue, essential for informed arguments." },
+      { statement: "Delegates should use official and credible sources like UN reports and government websites.", answer: true, explanation: "These sources ensure factual accuracy and credibility in your research." },
+      { statement: "Research should be completed once before the conference and not updated again.", answer: false, explanation: "It must be regularly updated as new developments arise before and during the conference." },
+      { statement: "Synthesizing research means combining information to form logical, policy-aligned arguments.", answer: true, explanation: "It’s about turning data into strategy and coherent reasoning." },
+      { statement: "Preparing counterarguments is unnecessary because debate is always cooperative.", answer: false, explanation: "Anticipating opposing points strengthens your debate preparation." },
+      { statement: "The main goal of research is to memorize data rather than understand issues deeply.", answer: false, explanation: "Deep understanding allows strategic and flexible participation in discussions." }
+    ];
+
+    let currentIndex = 0;
+    let userAnswers = [];
+
+    function loadCase() {
+      if (currentIndex >= cases.length) {
+        showFinalJudgment();
+        return;
+      }
+
+      document.getElementById("current-case").textContent = currentIndex + 1;
+      document.getElementById("total-cases").textContent = cases.length;
+
+      document.getElementById("statement-text").textContent = cases[currentIndex].statement;
+
+      const opts = document.getElementById("options-container");
+      opts.innerHTML = "";
+
+      ["True", "False"].forEach(txt => {
+        const btn = document.createElement("button");
+        btn.className = `px-10 sm:px-14 py-6 sm:py-8 text-xl sm:text-2xl font-bold rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-yellow-400/50`;
+        btn.style.background = txt === "True" ? "#15803d" : "#991b1b";
+        btn.style.color = "white";
+        btn.textContent = txt;
+
+        btn.onclick = () => {
+          userAnswers[currentIndex] = txt === "True";
+          gsap.to(btn, { scale: 1.15, duration: 0.25, yoyo: true, repeat: 1 });
+          setTimeout(() => {
+            currentIndex++;
+            loadCase();
+          }, 500);
+        };
+
+        opts.appendChild(btn);
+      });
+
+      gsap.fromTo("#speech-bubble", { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: "back.out(1.2)" });
+    }
+
+    function showFinalJudgment() {
+      document.querySelector(".bg-gradient-to-b").style.display = "none";
+      document.getElementById("final-screen").classList.remove("hidden");
+
+      let correct = 0;
+      cases.forEach((c, i) => { if (userAnswers[i] === c.answer) correct++; });
+
+      document.getElementById("score-text").innerHTML =
+        `Your Score: <span class="text-5xl sm:text-6xl text-yellow-300">${correct} / ${cases.length}</span><br>` +
+        `<span class="text-2xl sm:text-3xl mt-3 block">${correct === cases.length ? "Perfect Verdict – Master Jurist!" : "Some Misrulings – Review Advised"}</span>`;
+
+      const list = document.getElementById("verdict-list");
+      list.innerHTML = "";
+
+      cases.forEach((c, i) => {
+        const ok = userAnswers[i] === c.answer;
+        const div = document.createElement("div");
+        div.className = `p-5 sm:p-6 rounded-xl ${ok ? 'bg-green-900/30 border-l-6 border-green-400' : 'bg-red-900/30 border-l-6 border-red-500'}`;
+        div.innerHTML = `
+          <p class="text-lg sm:text-xl font-semibold mb-3">Case ${i+1}: ${c.statement}</p>
+          <p class="mb-2">You ruled: <strong>${userAnswers[i] ? "True" : "False"}</strong></p>
+          <p class="mb-2">Correct: <strong>${c.answer ? "True" : "False"}</strong></p>
+          <p class="text-slate-200 text-base">${c.explanation}</p>
+        `;
+        list.appendChild(div);
+      });
+
+      document.getElementById("restart-btn").onclick = () => {
+        currentIndex = 0;
+        userAnswers = [];
+        document.getElementById("final-screen").classList.add("hidden");
+        document.querySelector(".bg-gradient-to-b").style.display = "block";
+        loadCase();
+      };
+    }
+
+    loadCase();
+  </script>
+</body>
+</html>

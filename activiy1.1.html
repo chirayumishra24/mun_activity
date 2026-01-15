@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UN Delegate Training Mission: Module 1</title>
+
+<style>
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #001F3F 0%, #0A3D62 100%);
+    color: #FFFFFF;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: url('https://upload.wikimedia.org/wikipedia/commons/7/7f/Rotating_earth_animated_transparent.gif') 
+                center center / 900px auto no-repeat;
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: -2;
+    animation: slow-rotate 140s linear infinite;
+  }
+
+  @keyframes slow-rotate {
+    from { transform: rotate(0deg); } to { transform: rotate(360deg); }
+  }
+
+  #quiz-container, #final-screen {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    color: #001F3F;
+    padding: 40px 28px;
+    border-radius: 20px;
+    box-shadow: 0 12px 50px rgba(0,0,0,0.4);
+    max-width: 720px;
+    width: 92%;
+    margin: 20px auto;
+    text-align: center;
+    border: 1px solid rgba(255,215,0,0.22);
+  }
+
+  #final-screen {
+    max-height: 90vh;
+    overflow-y: auto;
+    padding-bottom: 80px;
+  }
+
+  h1 { color: #001F3F; font-size: 2.2rem; margin: 0 0 30px; font-weight: 700; }
+
+  .question { font-size: 1.35rem; line-height: 1.45; margin-bottom: 34px; }
+
+  .options { display: flex; flex-direction: column; gap: 18px; margin-bottom: 30px; }
+
+  .option-card {
+    background: linear-gradient(145deg, #001F3F 0%, #002B55 100%);
+    color: white;
+    padding: 20px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.35s;
+    box-shadow: 0 7px 20px rgba(0,0,0,0.28);
+    border: 1px solid rgba(255,215,0,0.13);
+    font-size: 1.1rem;
+    text-align: left;
+  }
+
+  .option-card:hover { transform: translateY(-6px); box-shadow: 0 14px 32px rgba(255,215,0,0.26); }
+
+  .option-card.disabled { pointer-events: none; opacity: 0.65; }
+
+  #feedback {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 22px 0;
+    padding: 12px;
+    border-radius: 10px;
+    display: none;
+  }
+
+  .correct { background: rgba(40,167,69,0.17); color: #006400; }
+  .incorrect { background: rgba(220,53,69,0.17); color: #8B0000; }
+
+  #review-tracker { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
+
+  .tracker-icon { font-size: 1.9rem; color: #bbb; }
+  .check { color: #28a745; transform: scale(1.2); }
+  .cross { color: #dc3545; transform: scale(1.2); }
+
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,31,63,0.8);
+    backdrop-filter: blur(6px);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  #modal-content {
+    background: white;
+    color: #001F3F;
+    padding: 32px;
+    border-radius: 18px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 18px 55px rgba(0,0,0,0.42);
+  }
+
+  #close-btn {
+    background: #001F3F;
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+  }
+
+  #close-btn:hover { background: #FFD700; color: #001F3F; transform: translateY(-2px); }
+
+  /* Final screen specific */
+  .wrong-answer {
+    background: rgba(220,53,69,0.12);
+    border-left: 6px solid #dc3545;
+    padding: 18px;
+    border-radius: 10px;
+    margin: 16px 0;
+    text-align: left;
+    color: #8B0000;
+  }
+
+  .wrong-answer strong { color: #8B0000; }
+
+  #restart-btn {
+    background: #001F3F;
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 32px auto 0;
+    display: block;
+    transition: all 0.3s;
+  }
+
+  #restart-btn:hover {
+    background: #FFD700;
+    color: #001F3F;
+    transform: translateY(-3px);
+  }
+
+  #perfect-message {
+    font-size: 1.6rem;
+    color: #28a745;
+    margin: 20px 0;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<div id="quiz-container">
+  <h1>UN Delegate Training Mission — Module 1</h1>
+  <div id="review-tracker"></div>
+  <div id="question-container"></div>
+  <div class="options" id="options-container"></div>
+  <div id="feedback"></div>
+</div>
+
+<div id="modal">
+  <div id="modal-content">
+    <h2 style="margin:0 0 18px; color:#001F3F;">Debriefing</h2>
+    <p id="your-answer" style="font-weight:700;"></p>
+    <p id="correct-answer" style="font-weight:700;"></p>
+    <p id="explanation"></p>
+    <button id="close-btn">Close & Continue Mission</button>
+  </div>
+</div>
+
+<div id="final-screen" style="display:none;">
+  <h1>Mission Accomplished, Delegate!</h1>
+  <p id="score" style="font-size:2.1rem; font-weight:700; margin:24px 0;"></p>
+  <div id="perfect-message" style="display:none;">Perfect Score! Outstanding Delegate Performance! 🎉</div>
+  <h2 style="margin:32px 0 12px;">Areas to Review</h2>
+  <div id="wrong-answers-list"></div>
+  <button id="restart-btn">Restart Mission</button>
+</div>
+
+<canvas id="confetti-canvas" style="position:fixed; inset:0; pointer-events:none; z-index:9999; display:none;"></canvas>
+
+<script>
+// ──────────────────────────────────────────────── Questions
+const questions = [
+  { text: "Mission Objective 1: What is Model United Nations (MUN)?",
+    options: ["A: A simulation of UN conferences where students act as delegates.","B: A video game about world politics."],
+    correct: 0,
+    explanation: "MUN is an educational simulation in which students represent countries and debate global issues — just like real UN diplomats."
+  },
+  { text: "Mission Objective 2: What is the main role of a delegate in MUN?",
+    options: ["A: To represent their assigned country's interests and negotiate with others.","B: To attend parties and social events only."],
+    correct: 0,
+    explanation: "Delegates advocate for their nation’s policies, form alliances, and work together to draft resolutions."
+  },
+  { text: "Mission Objective 3: Which of the following skills is developed through participating in MUN?",
+    options: ["A: Critical thinking and public speaking.","B: Advanced calculus."],
+    correct: 0,
+    explanation: "MUN strongly develops research, public speaking, negotiation, diplomacy, and leadership skills."
+  },
+  { text: "Mission Objective 4: What is the UN General Assembly?",
+    options: ["A: The main deliberative body where all member states have equal representation.","B: A committee that only handles security issues."],
+    correct: 0,
+    explanation: "Every UN member state gets one vote in the General Assembly — it's the most representative organ."
+  },
+  { text: "Mission Objective 5: What does the UN Security Council primarily handle?",
+    options: ["A: Matters of international peace and security, including authorizing peacekeeping missions.","B: Economic development and trade agreements."],
+    correct: 0,
+    explanation: "The Security Council has primary responsibility for international peace & can impose sanctions or authorize force."
+  },
+  { text: "Mission Objective 6: What is the purpose of a resolution in MUN?",
+    options: ["A: To propose solutions to the issues being discussed and vote on them.","B: To declare war on other countries."],
+    correct: 0,
+    explanation: "Resolutions are formal documents containing proposed actions/solutions that committees vote to adopt."
+  },
+  { text: "Mission Objective 7: In MUN, delegates must:",
+    options: ["A: Stay in character as their assigned country throughout the conference.","B: Ignore their country's policies and vote freely."],
+    correct: 0,
+    explanation: "Delegates represent their country’s official position — even if they personally disagree — to simulate real diplomacy."
+  }
+];
+
+let currentQuestion = 0;
+let answers = [];
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSuccess() { let osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value=780; osc.connect(audioCtx.destination); osc.start(); setTimeout(()=>osc.stop(),180); }
+function playAlert()  { let osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value=380; osc.connect(audioCtx.destination); osc.start(); setTimeout(()=>osc.stop(),220); }
+function playCelebration() {
+  let now = audioCtx.currentTime;
+  let notes = [659, 784, 880, 1047, 880, 784, 659];
+  notes.forEach((freq, i) => {
+    let osc = audioCtx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    let gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.4, now + i*0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i*0.12 + 0.1);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now + i*0.12);
+    osc.stop(now + i*0.12 + 0.15);
+  });
+}
+
+// Confetti (simple canvas version)
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = [];
+  for (let i = 0; i < 150; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      r: Math.random() * 6 + 4,
+      d: Math.random() * 150 + 50,
+      color: `hsl(${Math.random()*360}, 100%, 60%)`,
+      tilt: Math.random() * 10 - 5,
+      tiltAngle: 0
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.tiltAngle += 0.1;
+      p.y += (Math.cos(p.d) + 3 + p.r/2) / 2;
+      p.tilt = Math.sin(p.tiltAngle) * 12;
+
+      if (p.y > canvas.height) p.y = -10;
+
+      ctx.beginPath();
+      ctx.lineWidth = p.r;
+      ctx.strokeStyle = p.color;
+      ctx.moveTo(p.x + p.tilt + p.r/4, p.y);
+      ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r/4);
+      ctx.stroke();
+    });
+
+    if (pieces.some(p => p.y < canvas.height + 100)) {
+      requestAnimationFrame(draw);
+    } else {
+      canvas.style.display = 'none';
+    }
+  }
+
+  draw();
+  setTimeout(() => { canvas.style.display = 'none'; }, 8000);
+}
+
+// ──────────────────────────────────────────────── UI Logic
+function initTracker() {
+  const el = document.getElementById('review-tracker');
+  el.innerHTML = '';
+  questions.forEach(() => {
+    const span = document.createElement('span');
+    span.className = 'tracker-icon';
+    span.textContent = '○';
+    el.appendChild(span);
+  });
+}
+
+function updateTracker(idx, correct) {
+  const icons = document.querySelectorAll('.tracker-icon');
+  icons[idx].textContent = correct ? '✔' : '✖';
+  icons[idx].className = correct ? 'tracker-icon check' : 'tracker-icon cross';
+}
+
+function loadQuestion() {
+  if (currentQuestion >= questions.length) {
+    showFinalScreen();
+    return;
+  }
+
+  const qEl = document.getElementById('question-container');
+  const optsEl = document.getElementById('options-container');
+  const fb = document.getElementById('feedback');
+
+  fb.style.display = 'none';
+  fb.className = '';
+
+  qEl.innerHTML = `<div class="question">${questions[currentQuestion].text}</div>`;
+
+  optsEl.innerHTML = '';
+  questions[currentQuestion].options.forEach((text, i) => {
+    const card = document.createElement('div');
+    card.className = 'option-card';
+    card.textContent = text;
+    card.onclick = () => selectAnswer(i);
+    optsEl.appendChild(card);
+  });
+}
+
+function selectAnswer(choice) {
+  document.querySelectorAll('.option-card').forEach(c => c.classList.add('disabled'));
+
+  const isCorrect = choice === questions[currentQuestion].correct;
+  const fb = document.getElementById('feedback');
+
+  fb.textContent = isCorrect ? "Correct, Delegate!" : "Incorrect. Review Required.";
+  fb.className = isCorrect ? 'correct' : 'incorrect';
+  fb.style.display = 'block';
+
+  isCorrect ? playSuccess() : playAlert();
+
+  answers.push({ q: currentQuestion, choice, correct: isCorrect });
+  updateTracker(currentQuestion, isCorrect);
+
+  setTimeout(() => {
+    document.getElementById('your-answer').textContent   = `Your Answer: ${questions[currentQuestion].options[choice]}`;
+    document.getElementById('correct-answer').textContent = `Correct Answer: ${questions[currentQuestion].options[questions[currentQuestion].correct]}`;
+    document.getElementById('explanation').textContent    = `Explanation: ${questions[currentQuestion].explanation}`;
+    document.getElementById('modal').style.display = 'flex';
+  }, 1200);
+}
+
+document.getElementById('close-btn').onclick = () => {
+  document.getElementById('modal').style.display = 'none';
+  currentQuestion++;
+  loadQuestion();
+};
+
+function showFinalScreen() {
+  document.getElementById('quiz-container').style.display = 'none';
+  const final = document.getElementById('final-screen');
+  final.style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const correctCount = answers.filter(a => a.correct).length;
+  const total = questions.length;
+  document.getElementById('score').textContent = `Final Score: ${correctCount} / ${total}`;
+
+  const wrongList = document.getElementById('wrong-answers-list');
+  wrongList.innerHTML = '';
+
+  const wrongs = answers.filter(a => !a.correct);
+
+  if (wrongs.length === 0) {
+    document.getElementById('perfect-message').style.display = 'block';
+    playCelebration();
+    launchConfetti();
+    wrongList.innerHTML = '<p style="color:#28a745; font-size:1.3rem; margin:20px 0;">No mistakes — perfect performance!</p>';
+  } else {
+    wrongs.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'wrong-answer';
+      div.innerHTML = `
+        <strong>${questions[a.q].text}</strong><br><br>
+        <strong>Your Answer:</strong> ${questions[a.q].options[a.choice]}<br>
+        <strong>Correct Answer:</strong> ${questions[a.q].options[questions[a.q].correct]}<br><br>
+        <strong>Explanation:</strong> ${questions[a.q].explanation}
+      `;
+      wrongList.appendChild(div);
+    });
+  }
+
+  document.getElementById('restart-btn').onclick = () => {
+    currentQuestion = 0;
+    answers = [];
+    document.getElementById('final-screen').style.display = 'none';
+    document.getElementById('quiz-container').style.display = 'block';
+    document.getElementById('perfect-message').style.display = 'none';
+    document.getElementById('confetti-canvas').style.display = 'none';
+    initTracker();
+    loadQuestion();
+  };
+}
+
+// Start
+initTracker();
+loadQuestion();
+</script>
+</body>
+</html>

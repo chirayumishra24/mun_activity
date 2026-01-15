@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gradient-to-br from-blue-950 to-indigo-950 text-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Diplomatic Skills Challenge</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<body class="min-h-screen flex items-start justify-center p-6">
+
+  <div class="w-full max-w-3xl bg-white/95 backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12">
+
+    <h1 class="text-3xl md:text-4xl font-bold text-center text-blue-950 mb-10">
+      Diplomatic Skills Challenge
+    </h1>
+
+    <div id="question-container" class="text-xl md:text-2xl leading-relaxed text-center mb-16"></div>
+
+    <div id="options-container" class="flex flex-col sm:flex-row justify-center gap-6 md:gap-12 mb-12"></div>
+
+    <div id="feedback" class="text-2xl font-bold text-center min-h-[3rem]"></div>
+
+  </div>
+
+  <div id="final-screen" class="hidden w-full max-w-3xl bg-white/95 backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-8 md:p-12 mt-8">
+    <h1 class="text-4xl font-bold text-center text-green-800 mb-8">Challenge Complete!</h1>
+    <p id="score-text" class="text-3xl text-center mb-10"></p>
+    <div id="review-list" class="space-y-6"></div>
+    <button id="restart-btn" class="mt-10 mx-auto block bg-blue-900 hover:bg-blue-800 text-white font-semibold py-4 px-10 rounded-full text-xl transition">
+      Reset Activity
+    </button>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        sentence: "A delegate should represent the assigned country’s policies and viewpoints accurately, not ________ opinions.",
+        options: ["personal", "fictional"],
+        correct: "personal",
+        explanation: "Delegates must represent their country's official position, not their own personal views."
+      },
+      {
+        sentence: "Delegates must maintain professionalism, respect, and diplomatic _________ at all times.",
+        options: ["courtesy", "informality"],
+        correct: "courtesy",
+        explanation: "Diplomacy requires formal courtesy and respectful behavior."
+      },
+      {
+        sentence: "Delegates should demonstrate fairness, openness to negotiation, and willingness to _________.",
+        options: ["compromise", "dominate"],
+        correct: "compromise",
+        explanation: "Successful negotiation in MUN often requires compromise to reach consensus."
+      },
+      {
+        sentence: "Following the established UN and MUN _________ norms such as speaking in turn and yielding the floor is essential.",
+        options: ["procedural", "fashion"],
+        correct: "procedural",
+        explanation: "Procedural rules ensure orderly and fair debate."
+      },
+      {
+        sentence: "Main submitters ________ resolution drafts, defend them, and take primary responsibility.",
+        options: ["ignore", "spearhead"],
+        correct: "spearhead",
+        explanation: "The main submitter leads (spearheads) the resolution-writing process."
+      },
+      {
+        sentence: "Leadership in MUN involves balancing assertiveness with respect to gain colleagues’ ________ and votes.",
+        options: ["trust", "criticism"],
+        correct: "trust",
+        explanation: "Building trust with other delegates is key to gaining support."
+      }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    const feedbackEl = document.getElementById("feedback");
+
+    function loadQuestion() {
+      if (currentIndex >= questions.length) {
+        showFinalScreen();
+        return;
+      }
+
+      const q = questions[currentIndex];
+      const blankId = `blank-${currentIndex}`;
+
+      const sentenceHtml = q.sentence.replace("________",
+        `<span id="${blankId}" class="inline-block min-w-[160px] h-12 mx-3 border-2 border-dashed border-blue-700 rounded-lg align-middle text-center font-bold text-blue-900 bg-blue-50/60 transition-all duration-300"></span>`
+      );
+
+      document.getElementById("question-container").innerHTML = sentenceHtml;
+
+      const optsContainer = document.getElementById("options-container");
+      optsContainer.innerHTML = "";
+      feedbackEl.textContent = "";
+      feedbackEl.className = "";
+
+      q.options.forEach(optionText => {
+        const btn = document.createElement("button");
+        btn.className = "px-8 py-5 text-lg font-semibold rounded-xl shadow-lg transition-all duration-300 bg-blue-900 hover:bg-blue-800 text-white active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-500/50";
+        btn.textContent = optionText;
+        btn.dataset.value = optionText;
+
+        btn.addEventListener("click", () => handleChoice(optionText, btn));
+        optsContainer.appendChild(btn);
+      });
+    }
+
+    function handleChoice(selected, buttonEl) {
+      const q = questions[currentIndex];
+      const blank = document.getElementById(`blank-${currentIndex}`);
+      const isCorrect = selected === q.correct;
+
+      document.querySelectorAll("#options-container button").forEach(b => b.disabled = true);
+
+      if (isCorrect) {
+        score++;
+
+        gsap.to(buttonEl, {
+          duration: 0.7,
+          scale: 1.12,
+          backgroundColor: "#166534",
+          ease: "power2.out",
+          onComplete: () => {
+            gsap.to(buttonEl, {
+              duration: 1.2,
+              x: blank.getBoundingClientRect().left - buttonEl.getBoundingClientRect().left + (blank.offsetWidth/2 - buttonEl.offsetWidth/2),
+              y: blank.getBoundingClientRect().top - buttonEl.getBoundingClientRect().top + (blank.offsetHeight/2 - buttonEl.offsetHeight/2),
+              scale: 0.9,
+              ease: "power3.inOut",
+              onComplete: () => {
+                blank.textContent = selected;
+                blank.classList.remove("border-dashed", "bg-blue-50/60");
+                blank.classList.add("bg-green-100", "border-green-600", "text-green-800");
+                buttonEl.style.visibility = "hidden";
+                showFeedback("Correct, Delegate!", "text-green-700");
+                setTimeout(nextQuestion, 1600);
+              }
+            });
+          }
+        });
+      } else {
+        gsap.timeline({
+          onComplete: () => {
+            buttonEl.remove();
+            blank.classList.add("bg-red-50", "border-red-400", "text-red-700");
+            blank.textContent = "— wrong —";
+            showFeedback("Incorrect • Review needed", "text-red-700");
+            setTimeout(nextQuestion, 1800);
+          }
+        })
+        .to(buttonEl, { duration: 0.4, scaleY: 0.85, scaleX: 1.06, ease: "power1.out" })
+        .to(buttonEl, { duration: 0.3, scaleY: 0.65, scaleX: 0.92, y: "+=12", ease: "power2.in" })
+        .to(buttonEl, { duration: 0.5, scaleY: 0.18, scaleX: 1.12, y: "+=80", rotation: 4, ease: "power3.in" })
+        .to(buttonEl, { duration: 0.4, opacity: 0, y: "+=60", ease: "power2.in" }, "-=0.3");
+      }
+    }
+
+    function showFeedback(text, className) {
+      feedbackEl.textContent = text;
+      feedbackEl.className = `text-2xl font-bold ${className}`;
+    }
+
+    function nextQuestion() {
+      currentIndex++;
+      loadQuestion();
+    }
+
+    function showFinalScreen() {
+      document.querySelector("#question-container").parentElement.style.display = "none";
+      const final = document.getElementById("final-screen");
+      final.classList.remove("hidden");
+
+      document.getElementById("score-text").innerHTML =
+        `You got <span class="text-5xl font-bold text-green-700">${score}</span> / ${questions.length} correct!`;
+
+      const review = document.getElementById("review-list");
+      review.innerHTML = "<h2 class='text-2xl font-bold text-center mb-6 text-slate-800'>Quick Review</h2>";
+
+      questions.forEach(q => {
+        const item = document.createElement("div");
+        item.className = "bg-slate-50 p-5 rounded-xl border-l-4 border-blue-600";
+        item.innerHTML = `
+          <p class="font-medium mb-2">${q.sentence.replace("________", `<strong class="text-blue-800">${q.correct}</strong>`)}</p>
+          <p class="text-slate-600 text-sm">${q.explanation}</p>
+        `;
+        review.appendChild(item);
+      });
+
+      document.getElementById("restart-btn").onclick = () => {
+        currentIndex = 0;
+        score = 0;
+        final.classList.add("hidden");
+        document.querySelector("#question-container").parentElement.style.display = "block";
+        loadQuestion();
+      };
+    }
+
+    // Start
+    loadQuestion();
+  </script>
+</body>
+</html>
