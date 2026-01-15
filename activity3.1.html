@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Build the Perfect Opening Speech – MUN Podium Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .speech-part {
+      background: linear-gradient(to bottom right, #4f46e5, #7c3aed);
+      color: white;
+      padding: 1.25rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      cursor: grab;
+      text-align: center;
+      font-weight: 600;
+      font-size: 1.05rem;
+      border: 2px solid #a5b4fc;
+      transition: all 0.3s;
+      user-select: none;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .speech-part:active { cursor: grabbing; transform: scale(1.08); box-shadow: 0 15px 35px rgba(79,70,229,0.6); }
+    .correct { border-color: #10b981 !important; background: rgba(16,185,129,0.2) !important; }
+    .wrong   { border-color: #ef4444 !important; background: rgba(239,68,68,0.2) !important; }
+    #speech-parts { overflow-x: auto; padding-bottom: 1rem; }
+    #feedback {
+      transition: opacity 0.5s;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-indigo-950 to-purple-950 text-white flex flex-col">
+
+  <div class="flex-1 w-full max-w-6xl mx-auto px-4 py-6 sm:py-10">
+
+    <!-- Header -->
+    <h1 class="text-3xl sm:text-4xl font-bold text-center text-yellow-300 mb-8">
+      Build the Perfect Opening Speech
+    </h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+
+      <!-- Left: Draggable blocks -->
+      <div>
+        <h2 class="text-2xl font-bold text-center text-indigo-300 mb-6">
+          Speech Building Blocks
+        </h2>
+        <div id="speech-parts" class="grid grid-cols-1 sm:grid-cols-2 gap-5"></div>
+      </div>
+
+      <!-- Right: Timeline / Podium -->
+      <div>
+        <h2 class="text-2xl font-bold text-center text-amber-300 mb-6">
+          Arrange in Order on the Podium
+        </h2>
+        <div id="speech-timeline" class="space-y-4"></div>
+
+        <!-- Buttons -->
+        <div class="flex justify-center gap-6 mt-10">
+          <button id="check-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transition transform hover:scale-105">
+            Check Order
+          </button>
+          <button id="reset-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transition transform hover:scale-105">
+            Reset
+          </button>
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="mt-8 text-center text-xl font-bold min-h-[3rem]"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const speechBlocks = [
+      { id: 1, text: "Hook – Start with a striking question or statistic", correctPos: 0, icon: "✨" },
+      { id: 2, text: "State your country's official position clearly", correctPos: 1, icon: "🇮🇳" },
+      { id: 3, text: "Highlight relevant past actions or UN resolutions", correctPos: 2, icon: "📜" },
+      { id: 4, text: "Present 1–2 strong facts / data points", correctPos: 3, icon: "📊" },
+      { id: 5, text: "Propose your main goal / desired outcome", correctPos: 4, icon: "🎯" },
+      { id: 6, text: "Call to action – urge committee to support your solution", correctPos: 5, icon: "🗣️" }
+    ];
+
+    const timeline = document.getElementById("speech-timeline");
+    const partsContainer = document.getElementById("speech-parts");
+    const feedback = document.getElementById("feedback");
+    const checkBtn = document.getElementById("check-btn");
+    const resetBtn = document.getElementById("reset-btn");
+
+    let originalBlocks = [];
+
+    // Create timeline slots (empty at first)
+    for (let i = 0; i < 6; i++) {
+      const slot = document.createElement("div");
+      slot.className = "w-full h-28 bg-slate-800/70 backdrop-blur border-2 border-dashed border-indigo-500/60 rounded-xl flex items-center justify-center text-center p-4 text-base font-medium text-slate-400 transition-all duration-300";
+      slot.dataset.pos = i;
+      slot.innerHTML = `<span>Position ${i+1}</span>`;
+      slot.addEventListener("dragover", e => {
+        e.preventDefault();
+        slot.classList.add("border-yellow-400", "bg-yellow-900/30");
+      });
+      slot.addEventListener("dragleave", () => slot.classList.remove("border-yellow-400", "bg-yellow-900/30"));
+      slot.addEventListener("drop", e => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("text/plain");
+        const dragged = document.querySelector(`[data-id="${id}"]`);
+        if (dragged) {
+          if (slot.children.length > 0) {
+            // Swap with existing item if slot is occupied
+            const existing = slot.children[0];
+            partsContainer.appendChild(existing);
+          }
+          slot.innerHTML = "";
+          slot.appendChild(dragged);
+          slot.classList.add("border-indigo-400", "bg-indigo-900/30");
+        }
+        slot.classList.remove("border-yellow-400", "bg-yellow-900/30");
+      });
+      timeline.appendChild(slot);
+    }
+
+    // Create draggable blocks on left
+    speechBlocks.forEach(block => {
+      const el = document.createElement("div");
+      el.className = "speech-part";
+      el.draggable = true;
+      el.dataset.id = block.id;
+      el.innerHTML = `<div class="text-4xl">${block.icon}</div><div class="mt-2">${block.text}</div>`;
+      el.addEventListener("dragstart", e => e.dataTransfer.setData("text/plain", block.id));
+      partsContainer.appendChild(el);
+      originalBlocks.push(el.cloneNode(true)); // for reset
+    });
+
+    // Check button
+    checkBtn.addEventListener("click", () => {
+      let correct = 0;
+      timeline.querySelectorAll("div").forEach((slot, index) => {
+        const child = slot.querySelector(".speech-part");
+        if (child) {
+          const id = parseInt(child.dataset.id);
+          const block = speechBlocks.find(b => b.id === id);
+          if (block && block.correctPos === index) {
+            correct++;
+            slot.classList.add("correct");
+          } else {
+            slot.classList.add("wrong");
+          }
+        }
+      });
+
+      const percent = Math.round((correct / 6) * 100);
+      let msg = percent === 100 ? "Perfect speech structure! Standing ovation!" :
+                percent >= 80  ? "Very strong – delegates are impressed!" :
+                percent >= 60  ? "Good effort – needs smoother flow." :
+                                 "The committee lost interest… let's rebuild.";
+
+      feedback.textContent = `${percent}% – ${msg}`;
+      feedback.className = `text-center text-2xl font-bold p-6 rounded-xl ${percent >= 80 ? 'bg-green-800/80' : 'bg-red-800/80'}`;
+    });
+
+    // Reset button
+    resetBtn.addEventListener("click", () => {
+      // Clear timeline
+      timeline.querySelectorAll("div").forEach(slot => {
+        slot.innerHTML = `<span>Position ${slot.dataset.pos}</span>`;
+        slot.classList.remove("correct", "wrong", "border-indigo-400", "bg-indigo-900/30");
+      });
+
+      // Restore blocks to left side
+      partsContainer.innerHTML = "";
+      originalBlocks.forEach(blockClone => {
+        const fresh = blockClone.cloneNode(true);
+        fresh.draggable = true;
+        fresh.addEventListener("dragstart", e => e.dataTransfer.setData("text/plain", fresh.dataset.id));
+        partsContainer.appendChild(fresh);
+      });
+
+      feedback.textContent = "";
+      feedback.className = "";
+    });
+  </script>
+</body>
+</html>
