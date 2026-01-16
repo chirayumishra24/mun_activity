@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Lab: Speak or Stay Silent?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgStart: '#E0F2FE',
+                        bgEnd: '#BAE6FD',
+                        cardBg: 'rgba(255, 255, 255, 0.65)',
+                        textPrimary: '#1E40AF',
+                        buttonBg: '#3B82F6',
+                        buttonHover: '#1E40AF',
+                        progressBg: '#DBEAFE',
+                        progressFill: '#10B981',
+                        coral: '#FF6B6B',
+                        mint: '#A7F3D0',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-bgStart to-bgEnd min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div id="activity-container" class="w-full max-w-2xl">
+
+        <!-- Progress Bar (visible throughout) -->
+        <div id="progress-bar" class="w-full h-2 bg-progressBg rounded-full mb-8 overflow-hidden">
+            <div id="progress-fill" class="h-full bg-progressFill transition-all duration-500" style="width: 0%;"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="text-center">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-textPrimary mb-8 animate-pulse">Decision Lab</h1>
+            <p class="text-2xl text-gray-700 mb-12">Speak or Stay Silent?</p>
+            <button id="start-btn" class="bg-buttonBg hover:bg-buttonHover text-white font-bold py-5 px-12 rounded-full text-2xl shadow-xl transition-transform duration-300 hover:scale-105">
+                Begin Simulation
+            </button>
+        </div>
+
+        <!-- Scenario Card -->
+        <div id="scenario-card" class="hidden bg-cardBg backdrop-blur-lg border border-white/40 rounded-3xl shadow-2xl p-10 text-center transition-all duration-600 opacity-0 scale-95">
+            <h2 class="text-3xl font-bold text-textPrimary mb-8">Scenario <span id="scenario-number"></span></h2>
+            <p id="situation-text" class="text-xl text-gray-800 mb-12 leading-relaxed min-h-[120px]"></p>
+            <div id="choices-container" class="flex flex-col gap-5"></div>
+        </div>
+
+        <!-- Summary Card -->
+        <div id="summary-card" class="hidden bg-cardBg backdrop-blur-lg border border-white/40 rounded-3xl shadow-2xl p-10 text-center transition-all duration-800 opacity-0 scale-95">
+            <h2 class="text-4xl font-extrabold text-textPrimary mb-8">Your Negotiation Persona</h2>
+            <p id="persona-title" class="text-3xl font-bold mb-6"></p>
+
+            <div class="mb-10">
+                <h3 class="text-2xl font-bold text-coral mb-4">AI Coach Review</h3>
+                <div id="ai-review" class="text-left text-lg text-gray-800 bg-white/60 p-6 rounded-2xl shadow-inner whitespace-pre-wrap min-h-[200px]"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <div>
+                    <h3 class="text-xl font-bold text-textPrimary mb-4">Strengths</h3>
+                    <ul id="strengths-list" class="list-disc list-inside text-gray-700 text-left text-lg"></ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-textPrimary mb-4">Growth Areas</h3>
+                    <ul id="improvements-list" class="list-disc list-inside text-gray-700 text-left text-lg"></ul>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="bg-buttonBg hover:bg-buttonHover text-white font-bold py-4 px-10 rounded-full shadow-xl transition-transform duration-300 hover:scale-105">
+                Restart Simulation
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==== REPLACE WITH YOUR REAL GROQ API KEY ====
+        const GROQ_API_KEY = "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"; // ← PASTE YOUR KEY HERE
+
+        // All 5 scenarios
+        const scenarios = [
+            {
+                situation: "In a moderated caucus on climate change, a delegate from a major polluter country presents a biased view. Do you:",
+                choices: [
+                    { text: "Immediately interrupt to correct them, showing your knowledge.", impacts: { clarity: 1, confidence: 3, diplomacy: -1, influence: 2 } },
+                    { text: "Wait for your turn to speak, then counter with facts and propose a compromise.", impacts: { clarity: 3, confidence: 1, diplomacy: 3, influence: 2 } },
+                    { text: "Remain silent to avoid confrontation.", impacts: { clarity: 0, confidence: -2, diplomacy: 1, influence: -1 } }
+                ]
+            },
+            {
+                situation: "During an unmoderated caucus, you overhear a group forming a bloc that excludes your position. Do you:",
+                choices: [
+                    { text: "Approach and forcefully argue your case to join.", impacts: { clarity: 2, confidence: 3, diplomacy: -1, influence: 1 } },
+                    { text: "Listen first, then diplomatically suggest how your ideas align with theirs.", impacts: { clarity: 2, confidence: 2, diplomacy: 3, influence: 3 } },
+                    { text: "Stay out of it and work on your own resolution.", impacts: { clarity: 1, confidence: 0, diplomacy: 0, influence: -2 } }
+                ]
+            },
+            {
+                situation: "The chair calls for motions. You have a strong idea for a moderated caucus topic. Do you:",
+                choices: [
+                    { text: "Raise your placard and propose it confidently.", impacts: { clarity: 2, confidence: 3, diplomacy: 1, influence: 3 } },
+                    { text: "Wait to see what others propose before speaking.", impacts: { clarity: 0, confidence: -1, diplomacy: 2, influence: 0 } },
+                    { text: "Second someone else's motion instead of proposing your own.", impacts: { clarity: 1, confidence: 0, diplomacy: 3, influence: 1 } }
+                ]
+            },
+            {
+                situation: "A delegate misquotes your country's policy in their speech. Do you:",
+                choices: [
+                    { text: "Raise a point of order to immediately correct it.", impacts: { clarity: 3, confidence: 2, diplomacy: -1, influence: 1 } },
+                    { text: "Note it and address in your next speech politely.", impacts: { clarity: 2, confidence: 1, diplomacy: 3, influence: 2 } },
+                    { text: "Ignore it to keep the peace.", impacts: { clarity: -1, confidence: -2, diplomacy: 2, influence: -1 } }
+                ]
+            },
+            {
+                situation: "Voting is about to start on a resolution you oppose. Do you:",
+                choices: [
+                    { text: "Abstain to avoid conflict.", impacts: { clarity: 0, confidence: -1, diplomacy: 2, influence: -2 } },
+                    { text: "Vote no and explain your position if allowed.", impacts: { clarity: 3, confidence: 3, diplomacy: 1, influence: 2 } },
+                    { text: "Try to rally last-minute opposition.", impacts: { clarity: 1, confidence: 2, diplomacy: 0, influence: 3 } }
+                ]
+            }
+        ];
+
+        let scores = { clarity: 0, confidence: 0, diplomacy: 0, influence: 0 };
+        let userChoices = [];
+        let currentScenario = 0;
+
+        const progressFill = document.getElementById('progress-fill');
+        const startScreen = document.getElementById('start-screen');
+        const scenarioCard = document.getElementById('scenario-card');
+        const summaryCard = document.getElementById('summary-card');
+        const scenarioNumber = document.getElementById('scenario-number');
+        const situationText = document.getElementById('situation-text');
+        const choicesContainer = document.getElementById('choices-container');
+
+        // Start button
+        document.getElementById('start-btn').addEventListener('click', () => {
+            startScreen.classList.add('fade-out');
+            setTimeout(() => {
+                startScreen.classList.add('hidden');
+                scenarioCard.classList.remove('hidden');
+                void scenarioCard.offsetWidth;
+                scenarioCard.classList.add('opacity-100', 'scale-100');
+                showScenario();
+            }, 800);
+        });
+
+        function showScenario() {
+            if (currentScenario >= scenarios.length) {
+                progressFill.style.width = '100%';
+                scenarioCard.classList.add('fade-out');
+                setTimeout(() => {
+                    scenarioCard.classList.add('hidden');
+                    generateAIReview().then(() => {
+                        summaryCard.classList.remove('hidden');
+                        void summaryCard.offsetWidth;
+                        summaryCard.classList.add('opacity-100', 'scale-100');
+                    });
+                }, 600);
+                return;
+            }
+
+            const scenario = scenarios[currentScenario];
+            scenarioNumber.textContent = currentScenario + 1;
+            situationText.textContent = scenario.situation;
+
+            choicesContainer.innerHTML = '';
+            scenario.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-buttonBg hover:bg-buttonHover text-white font-medium py-4 px-8 rounded-2xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl';
+                btn.textContent = choice.text;
+                btn.addEventListener('click', () => handleChoice(index));
+                choicesContainer.appendChild(btn);
+            });
+
+            updateProgress();
+        }
+
+        function handleChoice(index) {
+            const choice = scenarios[currentScenario].choices[index];
+            scores.clarity += choice.impacts.clarity;
+            scores.confidence += choice.impacts.confidence;
+            scores.diplomacy += choice.impacts.diplomacy;
+            scores.influence += choice.impacts.influence;
+
+            userChoices.push({
+                scenario: currentScenario + 1,
+                situation: scenarios[currentScenario].situation,
+                chosen: choice.text,
+                impacts: choice.impacts
+            });
+
+            currentScenario++;
+
+            updateProgress();
+
+            scenarioCard.classList.add('fade-out');
+            setTimeout(() => {
+                showScenario();
+            }, 600);
+        }
+
+        function updateProgress() {
+            const progress = Math.min(100, (currentScenario / scenarios.length) * 100);
+            progressFill.style.width = `${progress}%`;
+        }
+
+        async function generateAIReview() {
+            const apiKey = GROQ_API_KEY;
+            if (!apiKey || apiKey.includes('XXXX')) {
+                document.getElementById('ai-review').innerHTML = "<strong>AI review unavailable</strong><br>Add your real Groq API key in the code.";
+                populateStaticSummary();
+                return;
+            }
+
+            const prompt = `
+You are an experienced Model United Nations coach analyzing a student's negotiation decisions.
+
+Student choices:
+${userChoices.map((c, i) => `
+Scenario ${i+1}: ${c.situation}
+Choice: ${c.chosen}
+`).join('\n')}
+
+Output ONLY valid JSON in this exact format (nothing before or after):
+
+{
+  "persona": "Persona Title (e.g. Master Diplomat)",
+  "review": "200-300 word warm, encouraging review in first person",
+  "strengths": ["Strength 1", "Strength 2", "Strength 3"],
+  "improvements": ["Improvement 1", "Improvement 2"]
+}
+
+Base everything on the student's actual choices and their impact on clarity, confidence, diplomacy, influence.
+            `;
+
+            try {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3.3-70b-versatile",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.7,
+                        max_tokens: 600
+                    })
+                });
+
+                if (!response.ok) throw new Error("API error");
+
+                const data = await response.json();
+                const content = data.choices[0].message.content.trim();
+
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+
+                    document.getElementById('persona-title').textContent = parsed.persona;
+                    document.getElementById('ai-review').textContent = parsed.review;
+
+                    // Dynamic strengths & improvements from AI
+                    const strengthsList = document.getElementById('strengths-list');
+                    strengthsList.innerHTML = parsed.strengths.map(s => `<li>${s}</li>`).join('');
+
+                    const improvementsList = document.getElementById('improvements-list');
+                    improvementsList.innerHTML = parsed.improvements.map(i => `<li>${i}</li>`).join('');
+                } else {
+                    throw new Error("No valid JSON");
+                }
+            } catch (err) {
+                document.getElementById('ai-review').innerHTML = "<strong>Failed to connect to AI coach.</strong><br>Check your API key and internet connection.";
+                populateStaticSummary();
+            }
+        }
+
+        function populateStaticSummary() {
+            document.getElementById('persona-title').textContent = "Balanced Negotiator";
+            document.getElementById('ai-review').textContent = "Great effort! You showed solid decision-making throughout the simulation.";
+            document.getElementById('strengths-list').innerHTML = "<li>Good overall balance</li><li>Thoughtful choices</li><li>Potential to grow</li>";
+            document.getElementById('improvements-list').innerHTML = "<li>Focus on confidence</li><li>Practice diplomacy more</li>";
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            scores = { clarity: 0, confidence: 0, diplomacy: 0, influence: 0 };
+            userChoices = [];
+            currentScenario = 0;
+            summaryCard.classList.add('fade-out');
+            progressFill.style.width = '0%';
+            setTimeout(() => {
+                summaryCard.classList.add('hidden');
+                document.getElementById('ai-review').textContent = '';
+                scenarioCard.classList.remove('hidden');
+                showScenario();
+            }, 600);
+        });
+    </script>
+</body>
+</html>
