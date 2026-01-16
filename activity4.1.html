@@ -3,304 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decision Lab: Speak or Stay Silent?</title>
+    <title>Coalition Building & Teamwork Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        bgStart: '#E0F2FE',
-                        bgEnd: '#BAE6FD',
-                        cardBg: 'rgba(255, 255, 255, 0.65)',
-                        textPrimary: '#1E40AF',
-                        buttonBg: '#3B82F6',
-                        buttonHover: '#1E40AF',
-                        progressBg: '#DBEAFE',
-                        progressFill: '#10B981',
-                        coral: '#FF6B6B',
-                        mint: '#A7F3D0',
-                    }
-                }
-            }
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #e0f2fe, #bae6fd);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
-    </script>
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .option-label {
+            transition: background-color 0.2s;
+        }
+        .option-label:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        #result-modal {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-bgStart to-bgEnd min-h-screen flex items-center justify-center p-4 font-sans">
+<body class="flex items-center justify-center p-6">
 
-    <div id="activity-container" class="w-full max-w-2xl">
+    <!-- Start Screen -->
+    <div id="start-screen" class="glass rounded-2xl shadow-xl p-10 md:p-12 max-w-xl w-full text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-blue-800 mb-6">
+            Coalition Building & Teamwork Quiz
+        </h1>
+        <p class="text-lg text-gray-700 mb-10">
+            Test your understanding of coalition building and teamwork in Model United Nations.
+        </p>
+        <button id="start-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-12 rounded-xl text-xl transition">
+            Start Quiz
+        </button>
+    </div>
 
-        <!-- Progress Bar (visible throughout) -->
-        <div id="progress-bar" class="w-full h-2 bg-progressBg rounded-full mb-8 overflow-hidden">
-            <div id="progress-fill" class="h-full bg-progressFill transition-all duration-500" style="width: 0%;"></div>
+    <!-- Quiz Area -->
+    <div id="quiz-area" class="hidden w-full max-w-2xl glass rounded-2xl shadow-xl p-8 md:p-10">
+
+        <div class="mb-8">
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+            <p class="text-center text-sm text-gray-600 mt-2">
+                Question <span id="q-number">1</span> of <span id="total-q">6</span>
+            </p>
         </div>
 
-        <!-- Start Screen -->
-        <div id="start-screen" class="text-center">
-            <h1 class="text-5xl md:text-6xl font-extrabold text-textPrimary mb-8 animate-pulse">Decision Lab</h1>
-            <p class="text-2xl text-gray-700 mb-12">Speak or Stay Silent?</p>
-            <button id="start-btn" class="bg-buttonBg hover:bg-buttonHover text-white font-bold py-5 px-12 rounded-full text-2xl shadow-xl transition-transform duration-300 hover:scale-105">
-                Begin Simulation
+        <p id="question" class="text-xl md:text-2xl font-medium text-gray-800 mb-8 text-center"></p>
+
+        <div id="options" class="space-y-4 mb-10"></div>
+
+        <div class="text-center">
+            <button id="next-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-10 rounded-xl transition">
+                Next Question
             </button>
         </div>
+    </div>
 
-        <!-- Scenario Card -->
-        <div id="scenario-card" class="hidden bg-cardBg backdrop-blur-lg border border-white/40 rounded-3xl shadow-2xl p-10 text-center transition-all duration-600 opacity-0 scale-95">
-            <h2 class="text-3xl font-bold text-textPrimary mb-8">Scenario <span id="scenario-number"></span></h2>
-            <p id="situation-text" class="text-xl text-gray-800 mb-12 leading-relaxed min-h-[120px]"></p>
-            <div id="choices-container" class="flex flex-col gap-5"></div>
-        </div>
+    <!-- Result Modal -->
+    <div id="result-modal" class="hidden fixed inset-0 flex items-center justify-center z-50">
+        <div class="glass rounded-2xl p-8 md:p-12 max-w-lg w-full mx-4 text-center">
+            <h2 class="text-3xl font-bold text-blue-800 mb-6">Quiz Complete!</h2>
+            <p class="text-5xl font-bold text-blue-600 mb-8" id="score-display">0 / 6</p>
 
-        <!-- Summary Card -->
-        <div id="summary-card" class="hidden bg-cardBg backdrop-blur-lg border border-white/40 rounded-3xl shadow-2xl p-10 text-center transition-all duration-800 opacity-0 scale-95">
-            <h2 class="text-4xl font-extrabold text-textPrimary mb-8">Your Negotiation Persona</h2>
-            <p id="persona-title" class="text-3xl font-bold mb-6"></p>
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Review of Wrong Answers</h3>
+            <div id="wrong-review" class="text-left space-y-6 max-h-80 overflow-y-auto"></div>
 
-            <div class="mb-10">
-                <h3 class="text-2xl font-bold text-coral mb-4">AI Coach Review</h3>
-                <div id="ai-review" class="text-left text-lg text-gray-800 bg-white/60 p-6 rounded-2xl shadow-inner whitespace-pre-wrap min-h-[200px]"></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                <div>
-                    <h3 class="text-xl font-bold text-textPrimary mb-4">Strengths</h3>
-                    <ul id="strengths-list" class="list-disc list-inside text-gray-700 text-left text-lg"></ul>
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-textPrimary mb-4">Growth Areas</h3>
-                    <ul id="improvements-list" class="list-disc list-inside text-gray-700 text-left text-lg"></ul>
-                </div>
-            </div>
-
-            <button id="restart-btn" class="bg-buttonBg hover:bg-buttonHover text-white font-bold py-4 px-10 rounded-full shadow-xl transition-transform duration-300 hover:scale-105">
-                Restart Simulation
+            <button id="restart-btn" class="mt-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-12 rounded-xl transition">
+                Restart Quiz
             </button>
         </div>
     </div>
 
     <script>
-        // ==== REPLACE WITH YOUR REAL GROQ API KEY ====
-        const GROQ_API_KEY = "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"; // ← PASTE YOUR KEY HERE
-
-        // All 5 scenarios
-        const scenarios = [
+        const questions = [
             {
-                situation: "In a moderated caucus on climate change, a delegate from a major polluter country presents a biased view. Do you:",
-                choices: [
-                    { text: "Immediately interrupt to correct them, showing your knowledge.", impacts: { clarity: 1, confidence: 3, diplomacy: -1, influence: 2 } },
-                    { text: "Wait for your turn to speak, then counter with facts and propose a compromise.", impacts: { clarity: 3, confidence: 1, diplomacy: 3, influence: 2 } },
-                    { text: "Remain silent to avoid confrontation.", impacts: { clarity: 0, confidence: -2, diplomacy: 1, influence: -1 } }
-                ]
+                q: "What is usually the first step in building a coalition in MUN?",
+                options: [
+                    "Write a resolution together",
+                    "Identify potential allies early",
+                    "Vote on the first resolution",
+                    "Give opening speeches"
+                ],
+                correct: 1,
+                explanation: "Identifying potential allies early by researching similar positions is the starting point of coalition building."
             },
             {
-                situation: "During an unmoderated caucus, you overhear a group forming a bloc that excludes your position. Do you:",
-                choices: [
-                    { text: "Approach and forcefully argue your case to join.", impacts: { clarity: 2, confidence: 3, diplomacy: -1, influence: 1 } },
-                    { text: "Listen first, then diplomatically suggest how your ideas align with theirs.", impacts: { clarity: 2, confidence: 2, diplomacy: 3, influence: 3 } },
-                    { text: "Stay out of it and work on your own resolution.", impacts: { clarity: 1, confidence: 0, diplomacy: 0, influence: -2 } }
-                ]
+                q: "Which settings are best for approaching potential bloc members?",
+                options: [
+                    "Only during formal speeches",
+                    "Opening speeches and unmoderated caucuses",
+                    "Only during voting",
+                    "Only in moderated caucuses"
+                ],
+                correct: 1,
+                explanation: "Opening speeches and unmoderated caucuses provide natural opportunities to connect with like-minded delegates."
             },
             {
-                situation: "The chair calls for motions. You have a strong idea for a moderated caucus topic. Do you:",
-                choices: [
-                    { text: "Raise your placard and propose it confidently.", impacts: { clarity: 2, confidence: 3, diplomacy: 1, influence: 3 } },
-                    { text: "Wait to see what others propose before speaking.", impacts: { clarity: 0, confidence: -1, diplomacy: 2, influence: 0 } },
-                    { text: "Second someone else's motion instead of proposing your own.", impacts: { clarity: 1, confidence: 0, diplomacy: 3, influence: 1 } }
-                ]
+                q: "How do you build and maintain trust in a coalition?",
+                options: [
+                    "By focusing only on your own goals",
+                    "By keeping promises and communicating regularly",
+                    "By avoiding contact outside committee",
+                    "By dominating the discussion"
+                ],
+                correct: 1,
+                explanation: "Trust is built by keeping promises, showing genuine interest in others, and maintaining regular communication."
             },
             {
-                situation: "A delegate misquotes your country's policy in their speech. Do you:",
-                choices: [
-                    { text: "Raise a point of order to immediately correct it.", impacts: { clarity: 3, confidence: 2, diplomacy: -1, influence: 1 } },
-                    { text: "Note it and address in your next speech politely.", impacts: { clarity: 2, confidence: 1, diplomacy: 3, influence: 2 } },
-                    { text: "Ignore it to keep the peace.", impacts: { clarity: -1, confidence: -2, diplomacy: 2, influence: -1 } }
-                ]
+                q: "Which teamwork skill is especially important in MUN blocs?",
+                options: [
+                    "Encouraging quieter members to speak",
+                    "Speaking the most during debate",
+                    "Rejecting all compromise",
+                    "Ignoring differing opinions"
+                ],
+                correct: 0,
+                explanation: "Inclusive participation helps quieter delegates feel valued and strengthens overall bloc performance."
             },
             {
-                situation: "Voting is about to start on a resolution you oppose. Do you:",
-                choices: [
-                    { text: "Abstain to avoid conflict.", impacts: { clarity: 0, confidence: -1, diplomacy: 2, influence: -2 } },
-                    { text: "Vote no and explain your position if allowed.", impacts: { clarity: 3, confidence: 3, diplomacy: 1, influence: 2 } },
-                    { text: "Try to rally last-minute opposition.", impacts: { clarity: 1, confidence: 2, diplomacy: 0, influence: 3 } }
-                ]
+                q: "What is one major benefit of having a strong coalition?",
+                options: [
+                    "Weaker voting power",
+                    "Greater influence and higher chance of resolution success",
+                    "Fewer speaking opportunities",
+                    "More internal arguments"
+                ],
+                correct: 1,
+                explanation: "Strong coalitions increase voting power, shape debate, and improve chances of passing resolutions."
+            },
+            {
+                q: "How should disagreements inside a coalition be handled?",
+                options: [
+                    "Ignore them completely",
+                    "Address them quickly and seek compromise",
+                    "Remove members who disagree",
+                    "Wait until voting time"
+                ],
+                correct: 1,
+                explanation: "Quickly addressing disagreements and finding compromise keeps the coalition united and effective."
             }
         ];
 
-        let scores = { clarity: 0, confidence: 0, diplomacy: 0, influence: 0 };
-        let userChoices = [];
-        let currentScenario = 0;
+        let current = 0;
+        let score = 0;
+        let wrong = [];
 
-        const progressFill = document.getElementById('progress-fill');
         const startScreen = document.getElementById('start-screen');
-        const scenarioCard = document.getElementById('scenario-card');
-        const summaryCard = document.getElementById('summary-card');
-        const scenarioNumber = document.getElementById('scenario-number');
-        const situationText = document.getElementById('situation-text');
-        const choicesContainer = document.getElementById('choices-container');
+        const quizArea = document.getElementById('quiz-area');
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const nextBtn = document.getElementById('next-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const resultModal = document.getElementById('result-modal');
+        const scoreDisplay = document.getElementById('score-display');
+        const wrongReview = document.getElementById('wrong-review');
 
-        // Start button
-        document.getElementById('start-btn').addEventListener('click', () => {
-            startScreen.classList.add('fade-out');
-            setTimeout(() => {
-                startScreen.classList.add('hidden');
-                scenarioCard.classList.remove('hidden');
-                void scenarioCard.offsetWidth;
-                scenarioCard.classList.add('opacity-100', 'scale-100');
-                showScenario();
-            }, 800);
+        document.getElementById('start-btn').onclick = () => {
+            startScreen.classList.add('hidden');
+            quizArea.classList.remove('hidden');
+            showQuestion();
+        };
+
+        function showQuestion() {
+            if (current >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const q = questions[current];
+            questionEl.textContent = q.q;
+
+            optionsEl.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                const label = document.createElement('label');
+                label.className = 'block option-label p-4 rounded-xl cursor-pointer border border-gray-300 hover:border-blue-400';
+                label.innerHTML = `
+                    <input type="radio" name="answer" value="${i}" class="mr-3 accent-blue-600">
+                    ${opt}
+                `;
+                optionsEl.appendChild(label);
+            });
+
+            nextBtn.classList.add('hidden');
+            progressBar.style.width = `${((current) / questions.length) * 100}%`;
+            document.getElementById('q-number').textContent = current + 1;
+        }
+
+        optionsEl.addEventListener('change', () => {
+            nextBtn.classList.remove('hidden');
         });
 
-        function showScenario() {
-            if (currentScenario >= scenarios.length) {
-                progressFill.style.width = '100%';
-                scenarioCard.classList.add('fade-out');
-                setTimeout(() => {
-                    scenarioCard.classList.add('hidden');
-                    generateAIReview().then(() => {
-                        summaryCard.classList.remove('hidden');
-                        void summaryCard.offsetWidth;
-                        summaryCard.classList.add('opacity-100', 'scale-100');
-                    });
-                }, 600);
-                return;
-            }
+        nextBtn.onclick = () => {
+            const selected = document.querySelector('input[name="answer"]:checked');
+            if (!selected) return;
 
-            const scenario = scenarios[currentScenario];
-            scenarioNumber.textContent = currentScenario + 1;
-            situationText.textContent = scenario.situation;
+            const index = parseInt(selected.value);
+            const q = questions[current];
 
-            choicesContainer.innerHTML = '';
-            scenario.choices.forEach((choice, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'bg-buttonBg hover:bg-buttonHover text-white font-medium py-4 px-8 rounded-2xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl';
-                btn.textContent = choice.text;
-                btn.addEventListener('click', () => handleChoice(index));
-                choicesContainer.appendChild(btn);
-            });
-
-            updateProgress();
-        }
-
-        function handleChoice(index) {
-            const choice = scenarios[currentScenario].choices[index];
-            scores.clarity += choice.impacts.clarity;
-            scores.confidence += choice.impacts.confidence;
-            scores.diplomacy += choice.impacts.diplomacy;
-            scores.influence += choice.impacts.influence;
-
-            userChoices.push({
-                scenario: currentScenario + 1,
-                situation: scenarios[currentScenario].situation,
-                chosen: choice.text,
-                impacts: choice.impacts
-            });
-
-            currentScenario++;
-
-            updateProgress();
-
-            scenarioCard.classList.add('fade-out');
-            setTimeout(() => {
-                showScenario();
-            }, 600);
-        }
-
-        function updateProgress() {
-            const progress = Math.min(100, (currentScenario / scenarios.length) * 100);
-            progressFill.style.width = `${progress}%`;
-        }
-
-        async function generateAIReview() {
-            const apiKey = GROQ_API_KEY;
-            if (!apiKey || apiKey.includes('XXXX')) {
-                document.getElementById('ai-review').innerHTML = "<strong>AI review unavailable</strong><br>Add your real Groq API key in the code.";
-                populateStaticSummary();
-                return;
-            }
-
-            const prompt = `
-You are an experienced Model United Nations coach analyzing a student's negotiation decisions.
-
-Student choices:
-${userChoices.map((c, i) => `
-Scenario ${i+1}: ${c.situation}
-Choice: ${c.chosen}
-`).join('\n')}
-
-Output ONLY valid JSON in this exact format (nothing before or after):
-
-{
-  "persona": "Persona Title (e.g. Master Diplomat)",
-  "review": "200-300 word warm, encouraging review in first person",
-  "strengths": ["Strength 1", "Strength 2", "Strength 3"],
-  "improvements": ["Improvement 1", "Improvement 2"]
-}
-
-Base everything on the student's actual choices and their impact on clarity, confidence, diplomacy, influence.
-            `;
-
-            try {
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: 0.7,
-                        max_tokens: 600
-                    })
+            if (index === q.correct) {
+                score++;
+            } else {
+                wrong.push({
+                    q: q.q,
+                    your: q.options[index],
+                    correct: q.options[q.correct],
+                    expl: q.explanation
                 });
+            }
 
-                if (!response.ok) throw new Error("API error");
+            current++;
+            showQuestion();
+        };
 
-                const data = await response.json();
-                const content = data.choices[0].message.content.trim();
+        function showResult() {
+            quizArea.classList.add('hidden');
+            resultModal.classList.remove('hidden');
 
-                const jsonMatch = content.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
+            scoreDisplay.textContent = `${score} / ${questions.length}`;
 
-                    document.getElementById('persona-title').textContent = parsed.persona;
-                    document.getElementById('ai-review').textContent = parsed.review;
-
-                    // Dynamic strengths & improvements from AI
-                    const strengthsList = document.getElementById('strengths-list');
-                    strengthsList.innerHTML = parsed.strengths.map(s => `<li>${s}</li>`).join('');
-
-                    const improvementsList = document.getElementById('improvements-list');
-                    improvementsList.innerHTML = parsed.improvements.map(i => `<li>${i}</li>`).join('');
-                } else {
-                    throw new Error("No valid JSON");
-                }
-            } catch (err) {
-                document.getElementById('ai-review').innerHTML = "<strong>Failed to connect to AI coach.</strong><br>Check your API key and internet connection.";
-                populateStaticSummary();
+            wrongReview.innerHTML = '';
+            if (wrong.length === 0) {
+                wrongReview.innerHTML = '<p class="text-center text-xl text-green-600 font-semibold">Perfect score! Excellent understanding.</p>';
+                celebrate(); // Confetti + sound
+            } else {
+                wrong.forEach(item => {
+                    wrongReview.innerHTML += `
+                        <div class="border-l-4 border-red-500 pl-4">
+                            <p class="font-semibold">${item.q}</p>
+                            <p class="text-red-600">Your answer: ${item.your}</p>
+                            <p class="text-green-600">Correct: ${item.correct}</p>
+                            <p class="text-gray-700 mt-1">${item.expl}</p>
+                        </div>
+                    `;
+                });
             }
         }
 
-        function populateStaticSummary() {
-            document.getElementById('persona-title').textContent = "Balanced Negotiator";
-            document.getElementById('ai-review').textContent = "Great effort! You showed solid decision-making throughout the simulation.";
-            document.getElementById('strengths-list').innerHTML = "<li>Good overall balance</li><li>Thoughtful choices</li><li>Potential to grow</li>";
-            document.getElementById('improvements-list').innerHTML = "<li>Focus on confidence</li><li>Practice diplomacy more</li>";
+        function celebrate() {
+            // Confetti
+            confetti({
+                particleCount: 120,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#1e40af', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+            });
+
+            // Celebration sound (short free sound from mixkit)
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3');
+            audio.volume = 0.6;
+            audio.play().catch(() => {}); // ignore autoplay block
         }
 
-        document.getElementById('restart-btn').addEventListener('click', () => {
-            scores = { clarity: 0, confidence: 0, diplomacy: 0, influence: 0 };
-            userChoices = [];
-            currentScenario = 0;
-            summaryCard.classList.add('fade-out');
-            progressFill.style.width = '0%';
-            setTimeout(() => {
-                summaryCard.classList.add('hidden');
-                document.getElementById('ai-review').textContent = '';
-                scenarioCard.classList.remove('hidden');
-                showScenario();
-            }, 600);
-        });
+        document.getElementById('restart-btn').onclick = () => {
+            resultModal.classList.add('hidden');
+            current = 0;
+            score = 0;
+            wrong = [];
+            progressBar.style.width = '0%';
+            quizArea.classList.remove('hidden');
+            showQuestion();
+        };
     </script>
 </body>
 </html>
