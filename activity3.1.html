@@ -140,32 +140,42 @@
       originalBlocks.push(el.cloneNode(true)); // for reset
     });
 
-    // Check button
-    checkBtn.addEventListener("click", () => {
-      let correct = 0;
-      timeline.querySelectorAll("div").forEach((slot, index) => {
-        const child = slot.querySelector(".speech-part");
-        if (child) {
-          const id = parseInt(child.dataset.id);
-          const block = speechBlocks.find(b => b.id === id);
-          if (block && block.correctPos === index) {
-            correct++;
-            slot.classList.add("correct");
-          } else {
-            slot.classList.add("wrong");
-          }
-        }
-      });
+  checkBtn.addEventListener("click", () => {
+  const slots = timeline.querySelectorAll("div");
+  const placed = Array.from(slots).filter(slot => slot.querySelector(".speech-part")).length;
 
-      const percent = Math.round((correct / 6) * 100);
-      let msg = percent === 100 ? "Perfect speech structure! Standing ovation!" :
-                percent >= 80  ? "Very strong – delegates are impressed!" :
-                percent >= 60  ? "Good effort – needs smoother flow." :
-                                 "The committee lost interest… let's rebuild.";
+  if (placed < 6) {
+    feedback.textContent = `Place all 6 blocks first! (${placed}/6 placed)`;
+    feedback.className = "text-center text-2xl font-bold p-6 rounded-xl bg-yellow-800/70";
+    return;
+  }
 
-      feedback.textContent = `${percent}% – ${msg}`;
-      feedback.className = `text-center text-2xl font-bold p-6 rounded-xl ${percent >= 80 ? 'bg-green-800/80' : 'bg-red-800/80'}`;
-    });
+  let correct = 0;
+  slots.forEach((slot, index) => {
+    const child = slot.querySelector(".speech-part");
+    slot.classList.remove("correct", "wrong");
+
+    if (child) {
+      const id = parseInt(child.dataset.id);
+      const block = speechBlocks.find(b => b.id === id);
+      if (block && block.correctPos === index) {
+        correct++;
+        slot.classList.add("correct");
+      } else {
+        slot.classList.add("wrong");
+      }
+    }
+  });
+
+  const percent = Math.round((correct / 6) * 100);
+  let msg = percent === 100 ? "Perfect! Standing ovation!" :
+            percent >= 80 ? "Very strong!" :
+            percent >= 60 ? "Good – refine the order." :
+                            "Needs major restructuring…";
+  
+  feedback.textContent = `${percent}% – ${msg}`;
+  feedback.className = `text-center text-2xl font-bold p-6 rounded-xl ${percent >= 80 ? 'bg-green-800/80' : percent >= 60 ? 'bg-amber-800/70' : 'bg-red-800/80'}`;
+});
 
     // Reset button
     resetBtn.addEventListener("click", () => {
@@ -190,3 +200,4 @@
   </script>
 </body>
 </html>
+
